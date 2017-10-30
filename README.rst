@@ -32,22 +32,22 @@ Clone ``meshmaker`` and enter ``meshmaker`` directory:
 
 .. code:: bash
 
-	git clone https://github.com/emdb-empiar/meshmaker.git
+	user@mac ~ $ git clone https://github.com/emdb-empiar/meshmaker.git
 	Cloning into 'meshmaker'...
 	remote: Counting objects: 9, done.
 	remote: Compressing objects: 100% (9/9), done.
 	remote: Total 9 (delta 1), reused 5 (delta 0), pack-reused 0
 	Unpacking objects: 100% (9/9), done.
-	cd meshmaker
-	mkdir build
-	cd build
+	user@mac ~ $ cd meshmaker
+	user@mac ~ $ mkdir build
+	user@mac ~ $ cd build
 	
 Generate the ``Makefile``
 ------------------------------
 
 .. code:: bash
 	
-	cmake ..
+	user@mac ~ $ cmake ..
 	-- The C compiler identification is AppleClang 8.1.0.8020042
 	-- The CXX compiler identification is AppleClang 8.1.0.8020042
 	-- Check for working C compiler: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc
@@ -71,7 +71,7 @@ Build
 
 .. code:: bash
 
-	make
+	user@mac ~ $ make
 	Scanning dependencies of target meshmaker
 	[ 50%] Building CXX object CMakeFiles/meshmaker.dir/meshmaker.cpp.o
 	[100%] Linking CXX executable meshmaker.app/Contents/MacOS/meshmaker
@@ -81,7 +81,7 @@ The executable for MacOSX is in the meshmaker.app/Contents/MacOS/ folder. You ca
 
 .. code:: bash
 
-	meshmaker.app/Contents/MacOS/meshmaker -h
+	user@mac ~ $ meshmaker.app/Contents/MacOS/meshmaker -h
 	usage: meshmaker [options] file.map
 	
 	Generate a mesh from the MAP/MRC file using the specified options
@@ -116,7 +116,7 @@ To specify a custom install prefix run
 
 .. code:: bash
 
-	ccmake ..
+	user@mac ~ $ ccmake ..
 	
 and modify the ``CMAKE_INSTALL_PREFIX`` variable.
 
