@@ -13,6 +13,7 @@
  * Version History:
  * 2016-09-26 - 0.1: basic version outputs either STL or VTK
  * 2017-03-22 - 0.2: basic version outputs VTP (XML)
+ * 2018-05-14 - 0.3: add a smoothing and triangle-strip step to reduce VTP files
  */
 
 // standard headers
@@ -24,9 +25,10 @@
 #include "vtkMRCReader.h"
 #include "vtkContourFilter.h"
 #include "vtkTriangleFilter.h"
+#include "vtkSmoothPolyDataFilter.h"
 #include "vtkDecimatePro.h"
+#include "vtkStripper.h"
 #include "vtkXMLPolyDataWriter.h"
-
 #include "vtkSTLWriter.h"
 #include "vtkPolyDataWriter.h"
 
@@ -39,6 +41,8 @@ struct args {
 	string map_fn = "";
 	string out_format = "vtp";
 	int decimate = 0; // don't decimate by default
+	int smooth = 0; // smoothen
+	int smooth_iter = 20; // number of smoothing iterations
 	float target_reduction = 0.9;
 	int ascii = 0; // output not ASCII but BINARY (if = 1 then ASCII)
 	int uint64 = 0; // headers of vtp are NOT in uint64 but in uint32
@@ -60,10 +64,12 @@ Options:\n\
 \t-V/--vtk\toutput in VTK format\n\
 \t-X/--vtp\toutput in VTP format [default]\n\
 \t-D/--decimate\tperform progressive decimation to eliminate superfluous polygons [default: false]\n\
+\t-s/--smooth\tsmooth the generated surface [default: false]\n\
+\t-i/--smooth-iter <int>\n\t\t\tnumber of iterations for smoothing (only applies if -s/--smooth is specified[default: 20]\n\
 \t-t/--target-reduction <float>\n\t\t\tset the target reduction in the number of polygon in interval (0, 1) [default: 0.9]\n\
 \t-A/--ascii\tsave data as ASCII as opposed to BINARY [default: false]\n\
 \t-U/--uint64\tsave VTP headers using UInt64 as opposed to UInt32 [default: false]\n\
-\t-I/--int32\tuser Int32 for vtkIdType instead of Int64 [default: false]\n\
+\t-I/--int32\tuse Int32 for vtkIdType instead of Int64 [default: false]\n\
 \t-h/--help\tshow this help\n\
 \t-v/--verbose\tverbose output\n";
 	cerr << usage_string << endl;
@@ -111,6 +117,16 @@ struct args parse_args(int argc, char **argv) {
 		else if (strcmp(argv[i], "-D") == 0 || strcmp(argv[i], "--decimate") == 0) {
 			cargs.decimate = 1;
 			i++;
+		}
+		// smooth the mesh
+		else if (strcmp(argv[i], "-s") == 0 || strcmp(argv[i], "--smooth") == 0) {
+		    cargs.smooth = 1;
+		    i++;
+		}
+		// smooth iterations
+		else if (strcmp(argv[i], "-i") == 0 || strcmp(argv[i], "--smooth-iter") == 0) {
+		    cargs.smooth_iter = stoi(argv[i+1]);
+		    i++;
 		}
 		// target reduction for decimation
 		else if (strcmp(argv[i], "-t") == 0 || strcmp(argv[i], "--target-reduction") == 0) {
@@ -197,35 +213,68 @@ int main(int argc, char **argv)
 	vtkSmartPointer<vtkMRCReader> reader = vtkSmartPointer<vtkMRCReader>::New();
 	reader->SetFileName(cargs.map_fn.c_str());
 
+    // contour
 	if (cargs.verbose)
 		cout << "Running contour filter at level " << cargs.clevel << "..." << endl;
 	vtkSmartPointer<vtkContourFilter> cfilt = vtkSmartPointer<vtkContourFilter>::New();
 	cfilt->SetInputConnection(reader->GetOutputPort());
 	cfilt->SetValue(0, cargs.clevel);
-	
+
 	vtkSmartPointer<vtkTriangleFilter> tfilt = vtkSmartPointer<vtkTriangleFilter>::New();
+	vtkSmartPointer<vtkSmoothPolyDataFilter> sfilt = vtkSmartPointer<vtkSmoothPolyDataFilter>::New();
 	vtkSmartPointer<vtkDecimatePro> dfilt = vtkSmartPointer<vtkDecimatePro>::New();
-	if (cargs.decimate) {
+	if (cargs.decimate || cargs.smooth) {
+	    // triangulate
 		if (cargs.verbose)
 			cout << "Running triangle filter..." << endl;
 		tfilt->SetInputConnection(cfilt->GetOutputPort());
-		
-		if (cargs.verbose)
-			cout << "Running progressive decimation filter..." << endl;
-		dfilt->SetInputConnection(tfilt->GetOutputPort());
-		dfilt->SetTargetReduction(cargs.target_reduction);
-		dfilt->PreserveTopologyOn();		
+
+	    // smooth
+		if (cargs.smooth) {
+            if (cargs.verbose)
+                cout << "Running smoothing filter with " << cargs.smooth_iter << " iterations..." << endl;
+		    sfilt->SetInputConnection(tfilt->GetOutputPort());
+		    sfilt->SetNumberOfIterations(cargs.smooth_iter);
+		}
+
+        // decimate
+        if (cargs.decimate) {
+            if (cargs.verbose)
+                cout << "Running progressive decimation filter with " << cargs.target_reduction << " target reduction..." << endl;
+            if (cargs.smooth)
+                dfilt->SetInputConnection(sfilt->GetOutputPort());
+            else
+                dfilt->SetInputConnection(tfilt->GetOutputPort());
+            dfilt->SetTargetReduction(cargs.target_reduction);
+            dfilt->PreserveTopologyOn();
+		}
 	}
+
+    // triangle strips
+    vtkSmartPointer<vtkStripper> strip = vtkSmartPointer<vtkStripper>::New();
+    if (cargs.verbose)
+        cout << "Generating triangle strips..." << endl;
+    if (cargs.decimate || cargs.smooth) {
+        if (cargs.decimate)
+            strip->SetInputConnection(dfilt->GetOutputPort());
+        else
+            strip->SetInputConnection(sfilt->GetOutputPort());
+    }
+    else {
+        strip->SetInputConnection(cfilt->GetOutputPort());
+    }
+    strip->SetMaximumLength(1000);
 
 	if (cargs.verbose)
 		cout << "Writing output to '" << cargs.out_fn_full.c_str() << "'..." << endl;
 
 	if (cargs.out_format.compare("stl") == 0){
 		vtkSmartPointer<vtkSTLWriter> writer = vtkSmartPointer<vtkSTLWriter>::New();
-		if (cargs.decimate)
-			writer->SetInputConnection(dfilt->GetOutputPort());
-		else
-			writer->SetInputConnection(cfilt->GetOutputPort());
+//		if (cargs.decimate)
+//			writer->SetInputConnection(dfilt->GetOutputPort());
+//		else
+//			writer->SetInputConnection(cfilt->GetOutputPort());
+        writer->SetInputConnection(strip->GetOutputPort());
 		writer->SetFileName(cargs.out_fn_full.c_str());
 		if (cargs.ascii)
 			writer->SetFileTypeToASCII();
@@ -236,10 +285,11 @@ int main(int argc, char **argv)
 	else if (cargs.out_format.compare("vtk") == 0){
 		vtkSmartPointer<vtkPolyDataWriter> writer = vtkSmartPointer<vtkPolyDataWriter>::New();
 		writer->SetFileName(cargs.out_fn_full.c_str());
-		if (cargs.decimate)
-			writer->SetInputConnection(dfilt->GetOutputPort());
-		else
-			writer->SetInputConnection(cfilt->GetOutputPort());
+//		if (cargs.decimate)
+//			writer->SetInputConnection(dfilt->GetOutputPort());
+//		else
+//			writer->SetInputConnection(cfilt->GetOutputPort());
+        writer->SetInputConnection(strip->GetOutputPort());
 		if (cargs.ascii)
 			writer->SetFileTypeToASCII();
 		else
@@ -249,10 +299,11 @@ int main(int argc, char **argv)
 		vtkSmartPointer<vtkXMLPolyDataWriter> writer = vtkSmartPointer<vtkXMLPolyDataWriter>::New();
 		writer->SetFileName(cargs.out_fn_full.c_str());
 		// decimate
-		if (cargs.decimate)
-			writer->SetInputConnection(dfilt->GetOutputPort());
-		else
-			writer->SetInputConnection(cfilt->GetOutputPort());
+//		if (cargs.decimate)
+//			writer->SetInputConnection(dfilt->GetOutputPort());
+//		else
+//			writer->SetInputConnection(cfilt->GetOutputPort());
+        writer->SetInputConnection(strip->GetOutputPort());
 		// vtkIdType
 		if (cargs.int32)
 			writer->SetIdTypeToInt32();
