@@ -82,28 +82,31 @@ The executable for MacOSX is in the meshmaker.app/Contents/MacOS/ folder. You ca
 .. code:: bash
 
 	user@mac ~ $ meshmaker.app/Contents/MacOS/meshmaker -h
-	usage: meshmaker [options] file.map
-	
-	Generate a mesh from the MAP/MRC file using the specified options
-	
-	Options:
-		-c/--clevel <float>
-				the contour level at which to build the surface [default: 0.0]
-		-o/--output <str>
-				the prefix of the output file to be combined with the extension (see below) [default: out]
-		-S/--stl	output in STL format
-		-V/--vtk	output in VTK format
-		-X/--vtp	output in VTP format [default]
-		-D/--decimate	perform progressive decimation to eliminate superfluous polygons [default: false]
-		-t/--target-reduction <float>
-				set the target reduction in the number of polygon in interval (0, 1) [default: 0.9]
-		-A/--ascii	save data as ASCII as opposed to BINARY [default: false]
-		-U/--uint64	save VTP headers using UInt64 as opposed to UInt32 [default: false]
-		-I/--int32	user Int32 for vtkIdType instead of Int64 [default: false]
-		-h/--help	show this help
-		-v/--verbose	verbose output
-	
-	Abort trap: 6
+    usage: meshmaker [options] file.map
+
+    Generate a mesh from the MAP/MRC file using the specified options
+
+    Options:
+        -c/--clevel <float>
+                the contour level at which to build the surface [default: 0.0]
+        -o/--output <str>
+                the prefix of the output file to be combined with the extension (see below) [default: out]
+        -S/--stl	output in STL format
+        -V/--vtk	output in VTK format
+        -X/--vtp	output in VTP format [default]
+        -D/--decimate	perform progressive decimation to eliminate superfluous polygons [default: false]
+        -s/--smooth	smooth the generated surface [default: false]
+        -i/--smooth-iter <int>
+                number of iterations for smoothing (only applies if -s/--smooth is specified[default: 20]
+        -t/--target-reduction <float>
+                set the target reduction in the number of polygon in interval (0, 1) [default: 0.9]
+        -A/--ascii	save data as ASCII as opposed to BINARY [default: false]
+        -U/--uint64	save VTP headers using UInt64 as opposed to UInt32 [default: false]
+        -I/--int32	use Int32 for vtkIdType instead of Int64 [default: false]
+        -h/--help	show this help
+        -v/--verbose	verbose output
+
+    Abort trap: 6
 	
 *Optional*: Install
 ------------------------------
