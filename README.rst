@@ -12,7 +12,22 @@ If you have Homebrew installed:
 
 	brew install cmake
 
-Without Homebrew, download and install CMake from `the CMake website. <https://cmake.org>`__
+With Anaconda:
+
+First ensure you have an environment available:
+
+.. code:: bash
+
+        conda create -n meshmaker
+        conda activate meshmaker
+
+then:
+
+.. code:: bash
+
+	conda install cmake
+
+Without Homebrew and Anaconda, download and install CMake from `the CMake website. <https://cmake.org>`__
 	
 Install VTK
 ------------------------------
@@ -23,7 +38,14 @@ With Homebrew:
 
 	brew install vtk
 
-Without Homebrew, download and build from `source. <https://www.vtk.org/download/>`__
+With Anaconda:
+
+.. code:: bash
+
+	conda install vtk
+	conda install tbb tbb-devel
+	
+Without Homebrew or Anaconda, download and build from `source. <https://www.vtk.org/download/>`__
 	
 Obtain source and prepare for build
 ------------------------------------------------------------
