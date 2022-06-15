@@ -3,7 +3,9 @@ cmake_minimum_required(VERSION 2.8)
 project(meshmaker)
 
 find_package(VTK REQUIRED)
-include(${VTK_USE_FILE})
+#include(${VTK_USE_FILE})
+
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 
 add_executable(meshmaker MACOSX_BUNDLE meshmaker)
 
@@ -17,6 +19,6 @@ else()
 	target_link_libraries(meshmaker vtkHybrid vtkWidgets)
 endif()
 
-install(TARGETS meshmaker 
+install(TARGETS meshmaker
 	RUNTIME DESTINATION bin
 	BUNDLE DESTINATION bin)
